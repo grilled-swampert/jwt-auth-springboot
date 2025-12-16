@@ -12,22 +12,26 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 public class SecurityConfig {
+
     @Autowired
     private JWTAthenticationEntryPoint point;
+
     @Autowired
     private JWTAuthenticationFilter filter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // configuration
-        http.csrf(csrf->csrf.disable())
-                .cors(cors->cors.disable())
-                .authorizeHttpRequests(auth->auth.requestMatchers("/home/**").authenticated()
-                        .requestMatchers("/auth/login").permitAll().anyRequest()
-                        .authenticated())
-                        .exceptionHandling(ex->ex.authenticationEntryPoint(point))
-                        .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        http.addFilterBefore(filter,UsernamePasswordAuthenticationFilter.class);
+        http.csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/home/**").authenticated()
+                        .anyRequest().authenticated())
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(point))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        http.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

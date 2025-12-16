@@ -18,27 +18,46 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class JWTAuthenticationFilter extends OncePerRequestFilter {
+
     private Logger logger = LoggerFactory.getLogger(OncePerRequestFilter.class);
+
     @Autowired
     private JWTHelper jwtHelper;
 
     @Autowired
     private UserDetailsService userDetailsService;
 
+    // List of paths to skip JWT filtering
+    private static final List<String> EXCLUDED_PATHS = Arrays.asList(
+            "/swagger-ui",
+            "/v3/api-docs",
+            "/swagger-ui.html",
+            "/swagger-resources",
+            "/webjars",
+            "/auth/login"
+    );
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        // Authorization=Bearer <token>
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        return EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         String requestHeader = request.getHeader("Authorization");
         logger.info(" Header :  {}", requestHeader);
         String username = null;
         String token = null;
 
-        if (requestHeader != null && requestHeader.startsWith("Bearer")) {
-            //looking good
+        if (requestHeader != null && requestHeader.startsWith("Bearer ")) {
             token = requestHeader.substring(7);
             try {
                 username = this.jwtHelper.getUsernameFromToken(token);
@@ -59,12 +78,11 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            //fetch user detail from username
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
             Boolean validateToken = this.jwtHelper.validateToken(token, userDetails);
             if (validateToken) {
-                //set the authentication
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } else {
