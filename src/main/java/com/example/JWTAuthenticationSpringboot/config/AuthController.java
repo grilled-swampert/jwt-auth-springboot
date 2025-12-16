@@ -2,6 +2,8 @@ package com.example.JWTAuthenticationSpringboot.config;
 
 import com.example.JWTAuthenticationSpringboot.models.JwtRequest;
 import com.example.JWTAuthenticationSpringboot.models.JwtResponse;
+import com.example.JWTAuthenticationSpringboot.models.User;
+import com.example.JWTAuthenticationSpringboot.services.UserService;
 import com.example.JWTAuthenticationSpringboot.security.JWTHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,18 +26,24 @@ public class AuthController {
     @Autowired
     private AuthenticationManager manager;
 
-
     @Autowired
     private JWTHelper helper;
 
+    @Autowired
+    private UserService userService;  // ADD THIS LINE
+
     private Logger logger = LoggerFactory.getLogger(AuthController.class);
 
+    @PostMapping("/register")
+    public ResponseEntity<User> register(@RequestBody User user) {
+        User savedUser = userService.createUser(user);
+        return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
+    }
 
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@RequestBody JwtRequest request) {
 
         this.doAuthenticate(request.getEmail(), request.getPassword());
-
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
         String token = this.helper.generateToken(userDetails);
