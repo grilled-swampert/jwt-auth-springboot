@@ -31,7 +31,6 @@ public class AuthController {
 
     @Autowired
     private UserService userService;  // ADD THIS LINE
-
     private Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @PostMapping("/register")
